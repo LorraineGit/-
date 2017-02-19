@@ -1,16 +1,16 @@
-import json
 import os
-from pymongo import MongoClient
 import re
-from selenium import webdriver
+import tweepy
+import time
+import json
+import urllib
+import json
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
-import time
+from selenium import webdriver
 from tweepy import OAuthHandler
-import tweepy
-from tweepy.streaming2 import Stream, StreamListener
-import urllib
-
+from tweepy.streaming2 import Stream,StreamListener
+from pymongo import MongoClient
 
 consumer_key='KIWRd2XJqG6416WwmvMCCiZ3U'
 consumer_secret='Y1dRPnfcvToGnftqGlyiBdeobHEErvmQnukigylAY6BvuQzxrE'
@@ -19,7 +19,6 @@ access_token_secret='JJZXm8iwXJg5BIkkFSWJAUiajM8sx4QpZKtTiN3N6sj1l'
 localDir = './'
             
 def process_or_store(tweet):
-#    keyword_tweet = json.dumps(tweet)
     tweet_id = tweet['id_str']
     screen_name = tweet['user']['screen_name']    
     seedUrl='https://mobile.twitter.com/'+screen_name+'/status/'+tweet_id
@@ -47,14 +46,12 @@ def searchLink(seedUrl, localDir):
     videofolder = localDir + 'Video/instanttweets/'
     if not os.path.exists(videofolder):
         os.makedirs(videofolder)
-    global browser
-    browser = webdriver.Chrome("./chromedriver")
+
     browser.get(seedUrl)
-    time.sleep(2)
+    time.sleep(3)
     browser.find_element_by_xpath("//a[contains(@class,'_1_aozdMe')]").click()
     time.sleep(1)
     videosrc = browser.find_element_by_xpath("//source[contains(@type,'video/mp4')]").get_attribute('src')
-    browser.quit()
     global filename
     filename=GetVideoFileNameFromURL(videosrc)
     videoFile = videofolder + filename
@@ -64,15 +61,12 @@ def searchLink(seedUrl, localDir):
 class MyListener(StreamListener):
 
     def on_data(self,data):
-        try:
-            
+        try:            
             tweet = json.loads(data)
             process_or_store(tweet)
-            #collection.insert_one(tweet)
             return True
         except BaseException as e:
             print("Error on_data: %s" % str(e))
-            browser.quit()
         return True
 
     def on_error(self,status):
@@ -90,13 +84,15 @@ if __name__ == "__main__":
         client = MongoClient('localhost',27017)
         db = client.TwitterDB
         collection = db.instant_tweets
+        browser = webdriver.Chrome()
         
-        twitter_stream=Stream(auth,MyListener(),proxy='127.0.0.1:1080')
+        twitter_stream=Stream(auth,MyListener(),proxy='127.0.0.1:57100')
         twitter_stream.filter(track=['video'])
 
     except tweepy.error.TweepError as e:
         print("Unable to authenticate", e)
-        browser.quit()
     except NoSuchElementException:
         print "can't find videosrc"
-        browser.quit()
+
+
+    
